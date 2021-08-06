@@ -1,4 +1,4 @@
-module.exports = (fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') => {
+function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') {
   /**
    * TODO:
    * - Avoid too many `Buffer#copy`. It may cause performance issues.
@@ -91,4 +91,13 @@ module.exports = (fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') =>
       OFFSET += bytes;
     }
   });
+}
+
+module.exports = {
+  createGets,
+  /**
+   * A function that reads a line from stdin.
+   * @return {String} The line read from stdin.
+   */
+  gets: createGets(),
 };

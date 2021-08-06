@@ -1,4 +1,4 @@
-const gets = require('../index.js')();
+const gets = require('../index.js').gets;
 
 // for (let i = 0; i < 10; i++) {
 //   const str = gets();
