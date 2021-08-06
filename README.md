@@ -1,5 +1,11 @@
 # node-gets
 
+## Installation
+
+```
+$ npm install --save git+https://github.com/cwd-k2/node-gets.git
+```
+
 # Usage
 
 ```js
