@@ -53,12 +53,12 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
   /**
    * create string from _chunk and BUFFER
    * @param index
-   *   where the delimiter is in _chunk
+   *   where the delimiter ('\n') is in _chunk
    * @param bytes
    *   bytes that _chunk holds
    */
   function _string(index, bytes, offset = OFFSET) {
-    const line = BUFFER.toString(encoding, 0, offset + index);
+    const line = BUFFER.toString(encoding, 0, offset + index + 1);
     BUFFER.fill(0, 0, OFFSET + bytes);
     // unread bytes should be stored in BUFFER
     _chunk.copy(BUFFER, 0, index + 1, bytes);
@@ -77,7 +77,7 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
   }
 
   return (() => {
-    if (BUFFER[0]) { // if there's unread bytes left
+    if (BUFFER[0]) { // if unread bytes left
       const bytes = _read(false);
       const index = _chunk.indexOf('\n');
       if (index !== -1) return _string(index, bytes, 0);
