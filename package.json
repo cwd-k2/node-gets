@@ -1,0 +1,15 @@
+{
+  "name": "node-gets",
+  "version": "0.1.0",
+  "description": "Synchronously reading a line with Node.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cwd-k2/node-gets.git"
+  },
+  "author": "cwd-k2",
+  "license": "MIT"
+}
