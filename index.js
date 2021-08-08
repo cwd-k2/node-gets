@@ -45,7 +45,7 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
    *
    * @return {number} The index of the first found delimiter. If not found, returns `-1`.
    */
-  function _index(item, searchstart, searchend) {
+  function _find(item, searchstart, searchend) {
     for (let i = searchstart; i < searchend; i++) if (BUFFER[i] === item) return i;
     return -1;
   }
@@ -78,14 +78,14 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
 
   return (() => {
     if (OFFSET) { // if OFFSET is not zero -> unread bytes left
-      const cutidx = _index(0x0A, 0, OFFSET);
+      const cutidx = _find(0x0A, 0, OFFSET);
       if (cutidx !== -1) return _string(cutidx, OFFSET);
     }
 
     while (true) {
       const bufend = _read();
       if (bufend === OFFSET) return _string0();
-      const cutidx = _index(0x0A, OFFSET, bufend);
+      const cutidx = _find(0x0A, OFFSET, bufend);
       if (cutidx !== -1) return _string(cutidx, bufend);
       OFFSET = bufend;
     }
