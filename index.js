@@ -7,13 +7,13 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
   /**
    * where the read bytes are stored
    */
-  let BUFFER = Buffer.alloc(_sub2exp(bufsize));
+  let BUFFER = Buffer.allocUnsafe(_sub2exp(bufsize));
   let OFFSET = 0;
 
   /**
    * bytes are read into _chunk, then appended to BUFFER
    */
-  const _chunk = Buffer.alloc(_sub2exp(chunksize));
+  const _chunk = Buffer.allocUnsafe(_sub2exp(chunksize));
 
   /**
    * @param i {number}
@@ -26,7 +26,7 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
   }
 
   function _grow(size) {
-    const newbuf = Buffer.alloc(_sub2exp(size, BUFFER.length));
+    const newbuf = Buffer.allocUnsafe(_sub2exp(size, BUFFER.length));
     BUFFER.copy(newbuf, 0, 0, OFFSET);
     BUFFER = newbuf;
   }
@@ -36,7 +36,6 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
    * @return {number} bytes read into _chunk
    */
   function _read(fromfd = true) {
-    _chunk.fill(0);
     if (fromfd) {
       // grow BUFFER if needed
       if (OFFSET + _chunk.length > BUFFER.length) _grow(OFFSET + _chunk.length);
@@ -44,9 +43,8 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
       if (bytes) _chunk.copy(BUFFER, OFFSET, 0, bytes);
       return bytes;
     } else {
-      const bytes = BUFFER.indexOf(0);
-      BUFFER.copy(_chunk, 0, 0, bytes);
-      return bytes;
+      BUFFER.copy(_chunk, 0, 0, OFFSET);
+      return OFFSET;
     }
   }
 
@@ -59,7 +57,6 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
    */
   function _string(index, bytes, offset = OFFSET) {
     const line = BUFFER.toString(encoding, 0, offset + index + 1);
-    BUFFER.fill(0, 0, OFFSET + bytes);
     // unread bytes should be stored in BUFFER
     _chunk.copy(BUFFER, 0, index + 1, bytes);
     OFFSET = bytes - (index + 1);
@@ -71,13 +68,12 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
    */
   function _string0() {
     const line = BUFFER.toString(encoding, 0, OFFSET);
-    BUFFER.fill(0, 0, OFFSET);
     OFFSET = 0;
     return line;
   }
 
   return (() => {
-    if (BUFFER[0]) { // if unread bytes left
+    if (OFFSET) { // if OFFSET is not zero -> unread bytes left
       const bytes = _read(false);
       const index = _chunk.indexOf('\n');
       if (index !== -1) return _string(index, bytes, 0);
