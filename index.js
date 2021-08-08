@@ -1,24 +1,29 @@
+/**
+ * Creates a `gets` function instance with specific configuration.
+ * You can also use default `gets` function.
+ * @param fd {number} The file descriptor. Defaults to `0` (STDIN).
+ * @param bufsize {number} The size of the buffer. Defaults to `8192`.
+ * @param chunksize {number} The size of the chunk. Defaults to `512`.
+ * @param encoding {string} The encoding. Defaults to `'utf8'`.
+ */
 function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') {
   /**
    * TODO:
    * - Avoid too many `Buffer#copy`. It may cause performance issues.
    */
 
-  /**
-   * where the read bytes are stored
-   */
+  /** where the read bytes are stored. */
   let BUFFER = Buffer.allocUnsafe(_sub2exp(bufsize));
+  /** offset index of the buffer. indicates where to append the read bytes. */
   let OFFSET = 0;
 
-  /**
-   * bytes are read into _chunk, then appended to BUFFER
-   */
+  /** bytes are read into _chunk, then appended to BUFFER. */
   const _chunk = Buffer.allocUnsafe(_sub2exp(chunksize));
 
   /**
-   * @param i {number}
-   * @param j {number}
-   * @return {number} the smallest exponent of 2 bigger than i
+   * The smallest 2^n * j (>= i).
+   * @param i {number} A target value.
+   * @param j {number} A seed value (Default: 1).
    */
   function _sub2exp(i, j = 1) {
     while (j < i) j <<= 1;
@@ -32,7 +37,7 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
   }
 
   /**
-   * read bytes into _chunk from BUFFER or fd(=stdin)
+   * read bytes into _chunk from BUFFER or fd (=stdin)
    * @return {number} bytes read into _chunk
    */
   function _read(fromfd = true) {
@@ -50,9 +55,9 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
 
   /**
    * create string from _chunk and BUFFER
-   * @param index
+   * @param index {number}
    *   where the delimiter ('\n') is in _chunk
-   * @param bytes
+   * @param bytes {number}
    *   bytes that _chunk holds
    */
   function _string(index, bytes, offset = OFFSET) {
@@ -65,6 +70,7 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
 
   /**
    * create string from BUFFER
+   * TODO: if there's no byte left, should it return `undefined`?
    */
   function _string0() {
     const line = BUFFER.toString(encoding, 0, OFFSET);
@@ -93,7 +99,7 @@ module.exports = {
   createGets,
   /**
    * A function that reads a line from stdin.
-   * @return {String} The line read from stdin.
+   * @return {string} The line read from stdin.
    */
   gets: createGets(),
 };
