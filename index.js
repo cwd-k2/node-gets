@@ -1,8 +1,12 @@
 /**
  * Creates a `gets` function instance with specific configuration.
  * You can also use default `gets` function.
+ *
+ * NOTICE: One `gets` instance has one internal buffer each.
+ * You should avoid creating multiple `gets` instance for a same file descriptor.
+ *
  * @param fd {number} The file descriptor. Defaults to `0` (STDIN).
- * @param bufsize {number} The size of the buffer. Defaults to `8192`.
+ * @param bufsize {number} The size of the internal buffer. Defaults to `8192`.
  * @param chunksize {number} The size of the chunk. Defaults to `512`.
  * @param encoding {string} The encoding. Defaults to `'utf8'`.
  */
@@ -20,11 +24,7 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
   /** bytes are read into _chunk, then appended to BUFFER. */
   const _chunk = Buffer.allocUnsafe(_sub2exp(chunksize));
 
-  /**
-   * The smallest 2^n * j (>= i).
-   * @param i {number} A target value.
-   * @param j {number} A seed value (Default: 1).
-   */
+  /** A smallest 2^n * j (>= i). */
   function _sub2exp(i, j = 1) {
     while (j < i) j <<= 1;
     return j;
@@ -38,6 +38,7 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
 
   /**
    * read bytes into _chunk from BUFFER or fd (=stdin)
+   *
    * @return {number} bytes read into _chunk
    */
   function _read(fromfd = true) {
@@ -55,6 +56,7 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
 
   /**
    * create string from _chunk and BUFFER
+   *
    * @param index {number}
    *   where the delimiter ('\n') is in _chunk
    * @param bytes {number}
@@ -99,6 +101,7 @@ module.exports = {
   createGets,
   /**
    * A function that reads a line from stdin.
+   *
    * @return {string} The line read from stdin.
    */
   gets: createGets(),
