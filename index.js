@@ -11,18 +11,10 @@
  * @param encoding {string} The encoding. Defaults to `'utf8'`.
  */
 function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') {
-  /**
-   * TODO:
-   * - Avoid too many `Buffer#copy`. It may cause performance issues.
-   */
-
   /** where the read bytes are stored. */
   let BUFFER = Buffer.allocUnsafe(_sub2exp(bufsize));
   /** offset index of the buffer. indicates where to append the read bytes. */
   let OFFSET = 0;
-
-  /** bytes are read into _chunk, then appended to BUFFER. */
-  const _chunk = Buffer.allocUnsafe(_sub2exp(chunksize));
 
   /** A smallest 2^n * j (>= i). */
   function _sub2exp(i, j = 1) {
@@ -37,36 +29,40 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
   }
 
   /**
-   * read bytes into _chunk from BUFFER or fd (=stdin)
+   * Read bytes into BUFFER fd (= stdin)
    *
-   * @return {number} bytes read into _chunk
+   * @return {number} The end of the BUFFER's valid bytes.
    */
-  function _read(fromfd = true) {
-    if (fromfd) {
-      // grow BUFFER if needed
-      if (OFFSET + _chunk.length > BUFFER.length) _grow(OFFSET + _chunk.length);
-      const bytes = require('fs').readSync(fd, _chunk);
-      if (bytes) _chunk.copy(BUFFER, OFFSET, 0, bytes);
-      return bytes;
-    } else {
-      BUFFER.copy(_chunk, 0, 0, OFFSET);
-      return OFFSET;
-    }
+  function _read() {
+    // grow BUFFER if needed
+    if (OFFSET + chunksize > BUFFER.length) _grow(OFFSET + chunksize);
+    const bytes = require('fs').readSync(fd, BUFFER, OFFSET, chunksize);
+    return OFFSET + bytes;
   }
 
   /**
-   * create string from _chunk and BUFFER
+   * Search a `item` in BUFFER from `searchstart` until `searchend`.
    *
-   * @param index {number}
-   *   where the delimiter ('\n') is in _chunk
-   * @param bytes {number}
-   *   bytes that _chunk holds
+   * @return {number} The index of the first found delimiter. If not found, returns `-1`.
    */
-  function _string(index, bytes, offset = OFFSET) {
-    const line = BUFFER.toString(encoding, 0, offset + index + 1);
+  function _index(item, searchstart, searchend) {
+    for (let i = searchstart; i < searchend; i++) if (BUFFER[i] === item) return i;
+    return -1;
+  }
+
+  /**
+   * Create string from BUFFER
+   *
+   * @param cutidx {number}
+   *   where the delimiter ('\n') is in BUFFER
+   * @param bufend {number}
+   *   The end of the BUFFER's valid bytes.
+   */
+  function _string(cutidx, bufend) {
+    const line = BUFFER.toString(encoding, 0, cutidx + 1);
     // unread bytes should be stored in BUFFER
-    _chunk.copy(BUFFER, 0, index + 1, bytes);
-    OFFSET = bytes - (index + 1);
+    BUFFER.copyWithin(0, cutidx + 1, bufend);
+    OFFSET = bufend - (cutidx + 1);
     return line;
   }
 
@@ -82,17 +78,16 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
 
   return (() => {
     if (OFFSET) { // if OFFSET is not zero -> unread bytes left
-      const bytes = _read(false);
-      const index = _chunk.indexOf('\n');
-      if (index !== -1) return _string(index, bytes, 0);
+      const cutidx = _index(0x0A, 0, OFFSET);
+      if (cutidx !== -1) return _string(cutidx, OFFSET);
     }
 
     while (true) {
-      const bytes = _read();
-      if (!bytes) return _string0();
-      const index = _chunk.indexOf('\n');
-      if (index !== -1) return _string(index, bytes);
-      OFFSET += bytes;
+      const bufend = _read();
+      if (bufend === OFFSET) return _string0();
+      const cutidx = _index(0x0A, OFFSET, bufend);
+      if (cutidx !== -1) return _string(cutidx, bufend);
+      OFFSET = bufend;
     }
   });
 }
