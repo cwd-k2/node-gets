@@ -94,10 +94,4 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
 
 module.exports = {
   createGets,
-  /**
-   * A function that reads a line from stdin.
-   *
-   * @return {string} The line read from stdin.
-   */
-  gets: createGets(),
 };

@@ -9,7 +9,7 @@ $ npm install --save git+https://github.com/cwd-k2/node-gets.git
 # Usage
 
 ```js
-const gets = require("node-gets").gets;
+const gets = require("node-gets").createGets();
 
 // echo each line from stdin
 for (let i = 0; i < 10; i++) {

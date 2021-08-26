@@ -1,4 +1,4 @@
-const gets = require('../index.js').gets;
+const gets = require('../index.js').createGets();
 
 // for (let i = 0; i < 10; i++) {
 //   const str = gets();
