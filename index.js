@@ -1,6 +1,5 @@
 /**
  * Creates a `gets` function instance with specific configuration.
- * You can also use default `gets` function.
  *
  * NOTICE: One `gets` instance has one internal buffer each.
  * You should avoid creating multiple `gets` instance for a same file descriptor.
