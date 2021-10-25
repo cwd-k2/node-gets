@@ -15,7 +15,7 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
   /** offset index of the buffer. indicates where to append the read bytes. */
   let OFFSET = 0;
 
-  /** A smallest 2^n * j (>= i). */
+  /** The smallest 2^n * j (>= i). */
   function _sub2exp(i, j = 1) {
     while (j < i) j <<= 1;
     return j;
@@ -75,7 +75,7 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
     return line;
   }
 
-  return (() => {
+  return (function() {
     if (OFFSET) { // if OFFSET is not zero -> unread bytes left
       const cutidx = _find(0x0A, 0, OFFSET);
       if (cutidx !== -1) return _string(cutidx, OFFSET);
