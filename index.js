@@ -12,6 +12,8 @@
 function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') {
   /** where the read bytes are stored. */
   let BUFFER = Buffer.allocUnsafe(_sub2exp(bufsize));
+  /** start index of returned string in buffer. */
+  let ISTART = 0;
   /** offset index of the buffer. indicates where to append the read bytes. */
   let OFFSET = 0;
 
@@ -21,20 +23,25 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
     return j;
   }
 
-  function _grow(size) {
-    const newbuf = Buffer.allocUnsafe(_sub2exp(size, BUFFER.length));
-    BUFFER.copy(newbuf, 0, 0, OFFSET);
-    BUFFER = newbuf;
-  }
-
   /**
    * Read bytes into BUFFER fd (= stdin)
    *
    * @return {number} The end of the BUFFER's valid bytes.
    */
   function _read() {
+    // shift BUFFER if needed
+    if (OFFSET + chunksize > BUFFER.length && ISTART !== 0) {
+      BUFFER.copyWithin(0, ISTART, OFFSET);
+      OFFSET = OFFSET - ISTART;
+      ISTART = 0;
+    }
     // grow BUFFER if needed
-    if (OFFSET + chunksize > BUFFER.length) _grow(OFFSET + chunksize);
+    if (OFFSET + chunksize > BUFFER.length) {
+      const newbuf = Buffer.allocUnsafe(_sub2exp(OFFSET + chunksize, BUFFER.length));
+      BUFFER.copy(newbuf, 0, 0, OFFSET);
+      BUFFER = newbuf;
+    }
+    // read bytes synchronously
     const bytes = require('fs').readSync(fd, BUFFER, OFFSET, chunksize);
     return OFFSET + bytes;
   }
@@ -58,10 +65,10 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
    *   The end of the BUFFER's valid bytes.
    */
   function _string(cutidx, bufend) {
-    const line = BUFFER.toString(encoding, 0, cutidx + 1);
     // unread bytes should be stored in BUFFER
-    BUFFER.copyWithin(0, cutidx + 1, bufend);
-    OFFSET = bufend - (cutidx + 1);
+    const line = BUFFER.toString(encoding, ISTART, cutidx + 1);
+    ISTART = cutidx + 1;
+    OFFSET = bufend;
     return line;
   }
 
@@ -70,14 +77,16 @@ function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') 
    * TODO: if there's no byte left, should it return `undefined`?
    */
   function _string0() {
-    const line = BUFFER.toString(encoding, 0, OFFSET);
+    if (ISTART === OFFSET) return;
+    const line = BUFFER.toString(encoding, ISTART, OFFSET);
+    ISTART = 0;
     OFFSET = 0;
     return line;
   }
 
   return (function() {
-    if (OFFSET) { // if OFFSET is not zero -> unread bytes left
-      const cutidx = _find(0x0A, 0, OFFSET);
+    if (ISTART !== OFFSET) { // if OFFSET is not ISTART (unread bytes left)
+      const cutidx = _find(0x0A, ISTART, OFFSET);
       if (cutidx !== -1) return _string(cutidx, OFFSET);
     }
 
