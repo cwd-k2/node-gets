@@ -1,6 +1,6 @@
 {
   "name": "node-gets",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Synchronously reading a line with Node.js",
   "main": "index.js",
   "scripts": {
