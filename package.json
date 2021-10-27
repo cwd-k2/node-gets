@@ -2,6 +2,11 @@
   "name": "node-gets",
   "version": "0.0.0",
   "description": "Synchronously reading a line with Node.js",
+  "keywords": [
+    "CLI",
+    "STDIN",
+    "IO"
+  ],
   "main": "index.js",
   "scripts": {
     "test": "echo \"No test implemented.\""
