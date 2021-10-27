@@ -5,11 +5,11 @@
  * You should avoid creating multiple `gets` instance for a same file descriptor.
  *
  * @param fd {number} The file descriptor. Defaults to `0` (STDIN).
- * @param bufsize {number} The size of the internal buffer. Defaults to `8192`.
- * @param chunksize {number} The size of the chunk. Defaults to `512`.
+ * @param bufsize {number} The size of the internal buffer. Defaults to `32768`.
+ * @param chunksize {number} The size of the chunk. Defaults to `2048`.
  * @param encoding {string} The encoding. Defaults to `'utf8'`.
  */
-function createGets(fd = 0, bufsize = 8192, chunksize = 512, encoding = 'utf8') {
+function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = 'utf8') {
   /** where the read bytes are stored. */
   let BUFFER = Buffer.allocUnsafe(_sub2exp(bufsize));
   /** start index of returned string in buffer. */
