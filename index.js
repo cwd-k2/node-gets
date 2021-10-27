@@ -17,6 +17,10 @@ function createGets(
   chunksize = 2048,
   encoding = "utf8"
 ) {
+  /** Be valid. */
+  if (bufsize <= 0) bufsize = 32768;
+  if (chunksize <= 0) chunksize = 2048;
+
   /** where the read bytes are stored. */
   let BUFFER = Buffer.allocUnsafe(_sub2exp(bufsize));
   /** start index of returned string in buffer. */
@@ -31,9 +35,9 @@ function createGets(
   }
 
   /**
-   * Read bytes into BUFFER fd (= stdin)
+   * Read bytes into BUFFER
    *
-   * @return {number} The end of the valid bytes in BUFFER.
+   * @return {number} The last valid bytes in BUFFER.
    */
   function _read() {
     // shift BUFFER if needed
@@ -72,7 +76,7 @@ function createGets(
    * @param cutidx {number}
    *   where the delimiter ('\n') is in BUFFER
    * @param bufend {number}
-   *   The end of the BUFFER's valid bytes.
+   *   The last valid byte in BUFFER.
    */
   function _string(cutidx, bufend) {
     // unread bytes should be stored in BUFFER
