@@ -3,7 +3,7 @@
 ## Installation
 
 ```
-# From GitHub
+# If you prefer GitHub version
 $ npm install --save cwd-k2/node-gets
 ```
 
