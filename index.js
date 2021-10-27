@@ -8,8 +8,15 @@
  * @param bufsize {number} The size of the internal buffer. Defaults to `32768`.
  * @param chunksize {number} The size of the chunk. Defaults to `2048`.
  * @param encoding {string} The encoding. Defaults to `'utf8'`.
+ *
+ * @return {() => string | undefined} The `gets` function instance. At the end of the stream, it returns `undefined`.
  */
-function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = 'utf8') {
+function createGets(
+  fd = 0,
+  bufsize = 32768,
+  chunksize = 2048,
+  encoding = "utf8"
+) {
   /** where the read bytes are stored. */
   let BUFFER = Buffer.allocUnsafe(_sub2exp(bufsize));
   /** start index of returned string in buffer. */
@@ -26,7 +33,7 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = 'utf8'
   /**
    * Read bytes into BUFFER fd (= stdin)
    *
-   * @return {number} The end of the BUFFER's valid bytes.
+   * @return {number} The end of the valid bytes in BUFFER.
    */
   function _read() {
     // shift BUFFER if needed
@@ -37,12 +44,14 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = 'utf8'
     }
     // grow BUFFER if needed
     if (OFFSET + chunksize > BUFFER.length) {
-      const newbuf = Buffer.allocUnsafe(_sub2exp(OFFSET + chunksize, BUFFER.length));
+      const newbuf = Buffer.allocUnsafe(
+        _sub2exp(OFFSET + chunksize, BUFFER.length)
+      );
       BUFFER.copy(newbuf, 0, 0, OFFSET);
       BUFFER = newbuf;
     }
     // read bytes synchronously
-    const bytes = require('fs').readSync(fd, BUFFER, OFFSET, chunksize);
+    const bytes = require("fs").readSync(fd, BUFFER, OFFSET, chunksize);
     return OFFSET + bytes;
   }
 
@@ -52,7 +61,8 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = 'utf8'
    * @return {number} The index of the first found delimiter. If not found, returns `-1`.
    */
   function _find(item, searchstart, searchend) {
-    for (let i = searchstart; i < searchend; i++) if (BUFFER[i] === item) return i;
+    for (let i = searchstart; i < searchend; i++)
+      if (BUFFER[i] === item) return i;
     return -1;
   }
 
@@ -73,8 +83,7 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = 'utf8'
   }
 
   /**
-   * create string from BUFFER
-   * TODO: if there's no byte left, should it return `undefined`?
+   * Create string from BUFFER
    */
   function _string0() {
     if (ISTART === OFFSET) return;
@@ -84,20 +93,21 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = 'utf8'
     return line;
   }
 
-  return (function() {
-    if (ISTART !== OFFSET) { // if OFFSET is not ISTART (unread bytes left)
-      const cutidx = _find(0x0A, ISTART, OFFSET);
+  return function () {
+    if (ISTART !== OFFSET) {
+      // if OFFSET is not ISTART (unread bytes left)
+      const cutidx = _find(0x0a, ISTART, OFFSET);
       if (cutidx !== -1) return _string(cutidx, OFFSET);
     }
 
     while (true) {
       const bufend = _read();
       if (bufend === OFFSET) return _string0();
-      const cutidx = _find(0x0A, OFFSET, bufend);
+      const cutidx = _find(0x0a, OFFSET, bufend);
       if (cutidx !== -1) return _string(cutidx, bufend);
       OFFSET = bufend;
     }
-  });
+  };
 }
 
 module.exports = {
