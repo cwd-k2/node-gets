@@ -1,32 +1,33 @@
 /**
  * A map that links `fd` with a buffer
- * @type {Map<number, Buffer>} BUFFER
+ * @type {Array<Buffer>} BF
  */
-const BUFFER = new Map();
+const BA = [];
 
 /**
  * Creates a `gets` function instance with specific configuration.
  *
- * NOTICE: You can create multiple `gets` instance for a file descriptor.
- * The internal buffer will be shared among the instances.
+ * NOTICE: You can create multiple `gets` instance for a file descriptor, but the internal buffer will be shared among the instances.
  *
  * @param fd {number} The file descriptor. Defaults to `0` (STDIN).
  * @param bufsize {number} The size of the internal buffer. Defaults to `32768`.
  * @param chunksize {number} The size of the chunk. Defaults to `2048`.
- * @param encoding {string} The encoding. Defaults to `'utf8'`.
+ * @param encoding {string} The encoding. Defaults to `'utf-8'`.
  *
  * @return {() => string | undefined} The `gets` function instance. At the end of the stream, it returns `undefined`.
  */
-function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf8") {
+function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf-8") {
   /** Be valid. */
   if (bufsize <= 0) bufsize = 32768;
   if (chunksize <= 0) chunksize = 2048;
 
-  /** create or grow a buffer for `fd`; where the read bytes are stored. */
-  if (!BUFFER.has(fd)) {
-    BUFFER.set(fd, Buffer.allocUnsafe(_sub2exp(bufsize)));
-  } else if (bufsize > BUFFER.get(fd).length) {
-    _grow(bufsize);
+  let buffer = BA[fd];
+  /** create or resize a buffer for `fd`; where the read bytes are stored. */
+  if (!buffer) {
+    buffer = Buffer.allocUnsafe(_sub2exp(bufsize));
+    BA[fd] = buffer;
+  } else if (bufsize > buffer.length) {
+    _resize(bufsize);
   }
   /** start index of returned string in buffer. */
   let ISTART = 0;
@@ -45,7 +46,6 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf8"
    * @return {number} The last valid bytes in BUFFER.
    */
   function _read() {
-    let buffer = BUFFER.get(fd);
     // shift the buffer if needed
     if (OFFSET + chunksize > buffer.length && ISTART !== 0) {
       buffer.copyWithin(0, ISTART, OFFSET);
@@ -54,20 +54,19 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf8"
     }
     // grow the buffer if needed
     if (OFFSET + chunksize > buffer.length) {
-      _grow(OFFSET + chunksize);
-      buffer = BUFFER.get(fd);
+      _resize(OFFSET + chunksize);
     }
     // read bytes synchronously
     const bytes = require("fs").readSync(fd, buffer, OFFSET, chunksize);
+    // the end of valid data
     return OFFSET + bytes;
   }
 
-  /** Grow the internal buffer. */
-  function _grow(atleast) {
-    const buffer = BUFFER.get(fd);
-    const newbuf = Buffer.allocUnsafe(_sub2exp(atleast, buffer.length));
-    buffer.copy(newbuf, 0, 0, OFFSET);
-    BUFFER.set(fd, newbuf);
+  /** resize the internal buffer. */
+  function _resize(atleast) {
+    buffer = Buffer.allocUnsafe(_sub2exp(atleast, buffer.length));
+    BA[fd].copy(buffer, 0, 0, OFFSET);
+    BA[fd] = buffer;
   }
 
   /**
@@ -76,7 +75,6 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf8"
    * @return {number} The index of the first found delimiter. If not found, returns `-1`.
    */
   function _find(item, searchstart, searchend) {
-    const buffer = BUFFER.get(fd);
     for (let i = searchstart; i < searchend; i++) if (buffer[i] === item) return i;
     return -1;
   }
@@ -91,7 +89,7 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf8"
    */
   function _string(cutidx, bufend) {
     // unread bytes should be stored in the buffer
-    const line = BUFFER.get(fd).toString(encoding, ISTART, cutidx + 1);
+    const line = buffer.toString(encoding, ISTART, cutidx + 1);
     ISTART = cutidx + 1;
     OFFSET = bufend;
     return line;
@@ -102,19 +100,20 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf8"
    */
   function _string0() {
     if (ISTART === OFFSET) return;
-    const line = BUFFER.get(fd).toString(encoding, ISTART, OFFSET);
+    const line = buffer.toString(encoding, ISTART, OFFSET);
     ISTART = 0;
     OFFSET = 0;
     return line;
   }
 
   return function () {
-    if (!BUFFER.has(fd)) {
+    // gets is removed
+    if (!BA[fd]) {
       throw new Error(`No buffer for fd ${fd}, maybe a disabled gets instance?`);
     }
 
     if (ISTART !== OFFSET) {
-      // if OFFSET is not ISTART (unread bytes left)
+      // if unread bytes left
       const cutidx = _find(0x0a, ISTART, OFFSET);
       if (cutidx !== -1) return _string(cutidx, OFFSET);
     }
@@ -135,7 +134,7 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf8"
  * @param fd {number} The file descriptor.
  */
 function removeGetsBuffer(fd) {
-  BUFFER.delete(fd);
+  delete BA[fd];
 }
 
 module.exports = {
