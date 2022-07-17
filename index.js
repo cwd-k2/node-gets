@@ -1,6 +1,6 @@
 /**
  * A map that links `fd` with a buffer
- * @type {Array<Buffer>} BF
+ * @type {Array<Buffer>} BA
  */
 const BA = [];
 
