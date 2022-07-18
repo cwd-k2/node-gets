@@ -1,13 +1,7 @@
 /**
- * A map that links `fd` with a buffer
- * @type {Array<Buffer>} BA
- */
-const BA = [];
-
-/**
  * Creates a `gets` function instance with specific configuration.
  *
- * NOTICE: You can create multiple `gets` instance for a file descriptor, but the internal buffer will be shared among the instances.
+ * NOTE: Multiple gets instance for a same fd wouldn't properly work.
  *
  * @param fd {number} The file descriptor. Defaults to `0` (STDIN).
  * @param bufsize {number} The size of the internal buffer. Defaults to `32768`.
@@ -21,14 +15,7 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf-8
   if (bufsize <= 0) bufsize = 32768;
   if (chunksize <= 0) chunksize = 2048;
 
-  let buffer = BA[fd];
-  /** create or resize a buffer for `fd`; where the read bytes are stored. */
-  if (!buffer) {
-    buffer = Buffer.allocUnsafe(_sub2exp(bufsize));
-    BA[fd] = buffer;
-  } else if (bufsize > buffer.length) {
-    _resize(bufsize);
-  }
+  let buffer = Buffer.allocUnsafe(_sub2exp(bufsize));
   /** start index of returned string in buffer. */
   let ISTART = 0;
   /** offset index of the buffer. indicates where to append the read bytes. */
@@ -64,9 +51,9 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf-8
 
   /** resize the internal buffer. */
   function _resize(atleast) {
-    buffer = Buffer.allocUnsafe(_sub2exp(atleast, buffer.length));
-    BA[fd].copy(buffer, 0, 0, OFFSET);
-    BA[fd] = buffer;
+    const newbuf = Buffer.allocUnsafe(_sub2exp(atleast, buffer.length));
+    buffer.copy(newbuf, 0, 0, OFFSET);
+    buffer = newbuf;
   }
 
   /**
@@ -107,11 +94,6 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf-8
   }
 
   return function () {
-    // gets is removed
-    if (!BA[fd]) {
-      throw new Error(`No buffer for fd ${fd}, maybe a disabled gets instance?`);
-    }
-
     if (ISTART !== OFFSET) {
       // if unread bytes left
       const cutidx = _find(0x0a, ISTART, OFFSET);
@@ -128,16 +110,6 @@ function createGets(fd = 0, bufsize = 32768, chunksize = 2048, encoding = "utf-8
   };
 }
 
-/**
- * Remove a buffer internally allocated for the file descriptor `fd`.
- * After calling this function, you can no longer use the `gets` instances for `fd`, until you create new ones.
- * @param fd {number} The file descriptor.
- */
-function removeGetsBuffer(fd) {
-  delete BA[fd];
-}
-
 module.exports = {
   createGets,
-  removeGetsBuffer,
 };
