@@ -1,6 +1,6 @@
 {
   "name": "node-gets",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Synchronously reading a line with Node.js",
   "keywords": [
     "CLI",
